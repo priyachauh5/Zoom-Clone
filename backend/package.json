@@ -9,12 +9,11 @@
   "scripts": {
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
-    "prod": "pm2 src/app.js",
-    "postinstall": "npm rebuild bcrypt --build-from-source"
+    "prod": "pm2 src/app.js"
   },
   "dependencies": {
     "auth": "^1.2.3",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "express": "^5.1.0",
