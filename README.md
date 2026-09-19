@@ -2,11 +2,14 @@
 
 # Zoom-Clone
 
-<p align="center">• Built a real-time video conferencing platform using WebRTC, enabling low-latency (<300ms) peer-to-peer audio/video 
-communication. 
+<p align="center">• Built a real-time video conferencing platform using WebRTC, enabling low-latency (<300ms) peer-to-peer audio/video communication.
+ 
 • Developed scalable backend with Node.js & Socket.io, handling 20+ concurrent users and real-time signaling. 
+
 • Designed responsive UI using React, improving user experience and seamless meeting interactions. 
+
 • Implemented room creation, unique join links, and live chat, supporting multi-user sessions efficiently. 
+
 • Optimized connection stability, reducing latency by ~25% using efficient event handling and WebRTC protocols.</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
