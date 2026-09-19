@@ -73,7 +73,7 @@ npm run dev
 - ✅ Meeting Interaction
 - ✅ Users can join/leave sessions and communicate through audio, video, and chat.
 
-##Screenshort
+## Screenshot
 <img width="1512" height="686" alt="img9" src="https://github.com/user-attachments/assets/7a7fac3d-db78-4b5a-924f-8b1ac6f93087" />
 
 
