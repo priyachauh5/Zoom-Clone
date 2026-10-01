@@ -12,33 +12,50 @@ import {
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { useLocation } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 
 const defaultTheme = createTheme();
 
 export default function Authentication() {
+  const location = useLocation();
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [name, setName] = React.useState("");
   const [error, setError] = React.useState("");
   const [message, setMessage] = React.useState("");
-  const [formState, setFormState] = React.useState(0); // 0 = Login, 1 = Signup
+  const [formState, setFormState] = React.useState(location.state?.formState ?? 0); // 0 = Login, 1 = Signup
   const [open, setOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (location.state?.formState !== undefined) {
+      setFormState(location.state.formState);
+      setError("");
+    }
+  }, [location.state]);
 
   const { handleRegister, handleLogin } = React.useContext(AuthContext);
 
   const handleAuth = async () => {
     try {
       if (formState === 0) {
+        if (!username.trim() || !password.trim()) {
+          setError("Please enter both username and password");
+          return;
+        }
         await handleLogin(username, password);
       } else {
+        if (!name.trim() || !username.trim() || !password.trim()) {
+          setError("Please fill in all fields");
+          return;
+        }
         const result = await handleRegister(name, username, password);
         setUsername("");
         setPassword("");
         setName("");
         setError("");
         setFormState(0);
-        setMessage(result);
+        setMessage(result || "User Registered");
         setOpen(true);
       }
     } catch (err) {
@@ -128,13 +145,19 @@ export default function Authentication() {
             <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
               <Button
                 variant={formState === 0 ? "contained" : "outlined"}
-                onClick={() => setFormState(0)}
+                onClick={() => {
+                  setFormState(0);
+                  setError("");
+                }}
               >
                 Sign In
               </Button>
               <Button
                 variant={formState === 1 ? "contained" : "outlined"}
-                onClick={() => setFormState(1)}
+                onClick={() => {
+                  setFormState(1);
+                  setError("");
+                }}
               >
                 Sign Up
               </Button>

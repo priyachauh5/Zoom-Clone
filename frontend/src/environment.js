@@ -16,11 +16,9 @@
 
 // export default server;
 
-let IS_PROD = true;
+let IS_PROD = false;
 const server = IS_PROD ?
-    "http://localhost:8080" :
-
-    "http://localhost:8000"
-
+    "https://zoom-clone-backend-wbqe.onrender.com" :
+    "http://localhost:8000";
 
 export default server;

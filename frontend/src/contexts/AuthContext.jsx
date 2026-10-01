@@ -1,6 +1,6 @@
 import axios from "axios";
 import httpStatus from "http-status";
-import { createContext, useContext, useState } from "react";
+import { createContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import server from "../environment";
 
@@ -8,16 +8,16 @@ import server from "../environment";
 export const AuthContext = createContext({});
 
 const client = axios.create({
-    baseURL: `${server}/api/v1/users`
+    baseURL: `${server.replace(/\/+$/, '')}/api/v1/users`
 })
 
 
 export const AuthProvider = ({ children }) => {
 
-    const authContext = useContext(AuthContext);
-
-
-    const [userData, setUserData] = useState(authContext);
+    const [userData, setUserData] = useState(() => {
+        const token = localStorage.getItem("token");
+        return token ? { token } : null;
+    });
 
 
     const router = useNavigate();
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
             })
 
 
-            if (request.status === httpStatus.CREATED) {
+            if (request.status === httpStatus.CREATED || request.status === 201) {
                 return request.data.message;
             }
         } catch (err) {
@@ -46,11 +46,9 @@ export const AuthProvider = ({ children }) => {
                 password: password
             });
 
-            console.log(username, password)
-            console.log(request.data)
-
-            if (request.status === httpStatus.OK) {
+            if (request.status === httpStatus.OK || request.status === 200) {
                 localStorage.setItem("token", request.data.token);
+                setUserData(request.data);
                 router("/home")
             }
         } catch (err) {
