@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import io from "socket.io-client";
-import { Badge, IconButton, TextField } from '@mui/material';
+import { Badge, IconButton, TextField, Box, Typography, Card, CardContent } from '@mui/material';
 import { Button } from '@mui/material';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import VideocamOffIcon from '@mui/icons-material/VideocamOff'
@@ -11,6 +11,7 @@ import MicOffIcon from '@mui/icons-material/MicOff'
 import ScreenShareIcon from '@mui/icons-material/ScreenShare';
 import StopScreenShareIcon from '@mui/icons-material/StopScreenShare'
 import ChatIcon from '@mui/icons-material/Chat'
+import { useLocation } from 'react-router-dom';
 import server from '../environment';
 
 const server_url = server;
@@ -25,6 +26,13 @@ const peerConfigConnections = {
 
 export default function VideoMeetComponent() {
 
+    const location = useLocation();
+    const incomingState = location.state;
+    const fromGuestLobby = incomingState?.fromGuestLobby || false;
+    const initialGuestName = incomingState?.username || "";
+    const initialVideo = incomingState?.videoEnabled !== undefined ? incomingState.videoEnabled : true;
+    const initialAudio = incomingState?.audioEnabled !== undefined ? incomingState.audioEnabled : true;
+
     var socketRef = useRef();
     let socketIdRef = useRef();
 
@@ -34,9 +42,9 @@ export default function VideoMeetComponent() {
 
     let [audioAvailable, setAudioAvailable] = useState(true);
 
-    let [video, setVideo] = useState([]);
+    let [video, setVideo] = useState(fromGuestLobby ? initialVideo : []);
 
-    let [audio, setAudio] = useState();
+    let [audio, setAudio] = useState(fromGuestLobby ? initialAudio : undefined);
 
     let [screen, setScreen] = useState();
 
@@ -50,25 +58,28 @@ export default function VideoMeetComponent() {
 
     let [newMessages, setNewMessages] = useState(3);
 
-    let [askForUsername, setAskForUsername] = useState(true);
+    let [askForUsername, setAskForUsername] = useState(!fromGuestLobby);
 
-    let [username, setUsername] = useState("");
+    let [username, setUsername] = useState(fromGuestLobby ? initialGuestName : "");
 
     const videoRef = useRef([])
 
     let [videos, setVideos] = useState([])
 
-    // TODO
-    // if(isChrome() === false) {
-
-
-    // }
+    const peerNamesRef = useRef({});
+    const usernameRef = useRef(fromGuestLobby ? initialGuestName : "");
 
     useEffect(() => {
-        console.log("HELLO")
-        getPermissions();
+        usernameRef.current = username;
+    }, [username]);
 
-    })
+    useEffect(() => {
+        if (fromGuestLobby) {
+            connectToSocketServer();
+        } else {
+            getPermissions();
+        }
+    }, []);
 
     let getDislayMedia = () => {
         if (screen) {
@@ -157,7 +168,7 @@ export default function VideoMeetComponent() {
                 console.log(description)
                 connections[id].setLocalDescription(description)
                     .then(() => {
-                        socketRef.current.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription }))
+                        socketRef.current.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription, 'userName': usernameRef.current }))
                     })
                     .catch(e => console.log(e))
             })
@@ -182,7 +193,7 @@ export default function VideoMeetComponent() {
                 connections[id].createOffer().then((description) => {
                     connections[id].setLocalDescription(description)
                         .then(() => {
-                            socketRef.current.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription }))
+                            socketRef.current.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription, 'userName': usernameRef.current }))
                         })
                         .catch(e => console.log(e))
                 })
@@ -195,12 +206,26 @@ export default function VideoMeetComponent() {
             navigator.mediaDevices.getUserMedia({ video: video, audio: audio })
                 .then(getUserMediaSuccess)
                 .then((stream) => { })
-                .catch((e) => console.log(e))
+                .catch((e) => {
+                    console.log(e);
+                    let blackSilence = (...args) => new MediaStream([black(...args), silence()]);
+                    window.localStream = blackSilence();
+                    if (localVideoref.current) {
+                        localVideoref.current.srcObject = window.localStream;
+                    }
+                })
         } else {
             try {
-                let tracks = localVideoref.current.srcObject.getTracks()
-                tracks.forEach(track => track.stop())
+                if (localVideoref.current && localVideoref.current.srcObject) {
+                    let tracks = localVideoref.current.srcObject.getTracks()
+                    tracks.forEach(track => track.stop())
+                }
             } catch (e) { }
+            let blackSilence = (...args) => new MediaStream([black(...args), silence()]);
+            window.localStream = blackSilence();
+            if (localVideoref.current) {
+                localVideoref.current.srcObject = window.localStream;
+            }
         }
     }
 
@@ -225,7 +250,7 @@ export default function VideoMeetComponent() {
             connections[id].createOffer().then((description) => {
                 connections[id].setLocalDescription(description)
                     .then(() => {
-                        socketRef.current.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription }))
+                        socketRef.current.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription, 'userName': usernameRef.current }))
                     })
                     .catch(e => console.log(e))
             })
@@ -252,12 +277,23 @@ export default function VideoMeetComponent() {
         var signal = JSON.parse(message)
 
         if (fromId !== socketIdRef.current) {
+            if (signal.userName) {
+                peerNamesRef.current[fromId] = signal.userName;
+                setVideos(videos => {
+                    const updatedVideos = videos.map(video =>
+                        video.socketId === fromId ? { ...video, userName: signal.userName } : video
+                    );
+                    videoRef.current = updatedVideos;
+                    return updatedVideos;
+                });
+            }
+
             if (signal.sdp) {
                 connections[fromId].setRemoteDescription(new RTCSessionDescription(signal.sdp)).then(() => {
                     if (signal.sdp.type === 'offer') {
                         connections[fromId].createAnswer().then((description) => {
                             connections[fromId].setLocalDescription(description).then(() => {
-                                socketRef.current.emit('signal', fromId, JSON.stringify({ 'sdp': connections[fromId].localDescription }))
+                                socketRef.current.emit('signal', fromId, JSON.stringify({ 'sdp': connections[fromId].localDescription, 'userName': usernameRef.current }))
                             }).catch(e => console.log(e))
                         }).catch(e => console.log(e))
                     }
@@ -299,6 +335,11 @@ export default function VideoMeetComponent() {
                         }
                     }
 
+                    // Share our display name with the peer
+                    if (usernameRef.current && socketListId !== socketIdRef.current) {
+                        socketRef.current.emit('signal', socketListId, JSON.stringify({ 'userName': usernameRef.current }));
+                    }
+
                     // Wait for their video stream
                     connections[socketListId].onaddstream = (event) => {
                         console.log("BEFORE:", videoRef.current);
@@ -312,7 +353,7 @@ export default function VideoMeetComponent() {
                             // Update the stream of the existing video
                             setVideos(videos => {
                                 const updatedVideos = videos.map(video =>
-                                    video.socketId === socketListId ? { ...video, stream: event.stream } : video
+                                    video.socketId === socketListId ? { ...video, stream: event.stream, userName: video.userName || peerNamesRef.current[socketListId] || "" } : video
                                 );
                                 videoRef.current = updatedVideos;
                                 return updatedVideos;
@@ -324,7 +365,8 @@ export default function VideoMeetComponent() {
                                 socketId: socketListId,
                                 stream: event.stream,
                                 autoplay: true,
-                                playsinline: true
+                                playsinline: true,
+                                userName: peerNamesRef.current[socketListId] || ""
                             };
 
                             setVideos(videos => {
@@ -357,7 +399,7 @@ export default function VideoMeetComponent() {
                         connections[id2].createOffer().then((description) => {
                             connections[id2].setLocalDescription(description)
                                 .then(() => {
-                                    socketRef.current.emit('signal', id2, JSON.stringify({ 'sdp': connections[id2].localDescription }))
+                                    socketRef.current.emit('signal', id2, JSON.stringify({ 'sdp': connections[id2].localDescription, 'userName': usernameRef.current }))
                                 })
                                 .catch(e => console.log(e))
                         })
@@ -433,7 +475,7 @@ export default function VideoMeetComponent() {
 
     let sendMessage = () => {
         console.log(socketRef.current);
-        socketRef.current.emit('chat-message', message, username)
+        socketRef.current.emit('chat-message', message, usernameRef.current || username || "Guest")
         setMessage("");
 
         // this.setState({ message: "", sender: username })
@@ -442,6 +484,7 @@ export default function VideoMeetComponent() {
     
     let connect = () => {
         setAskForUsername(false);
+        usernameRef.current = username;
         getMedia();
     }
 
@@ -451,19 +494,72 @@ export default function VideoMeetComponent() {
 
             {askForUsername === true ?
 
-                <div>
-
-
-                    <h2>Enter into Lobby </h2>
-                    <TextField id="outlined-basic" label="Username" value={username} onChange={e => setUsername(e.target.value)} variant="outlined" />
-                    <Button variant="contained" onClick={connect}>Connect</Button>
-
-
-                    <div>
-                        <video ref={localVideoref} autoPlay muted></video>
-                    </div>
-
-                </div> :
+                <Box sx={{
+                    minHeight: "100vh",
+                    bgcolor: "#f8f9fa",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    p: 2
+                }}>
+                    <Card elevation={3} sx={{ maxWidth: 440, width: "100%", borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
+                        <CardContent sx={{ textAlign: "center" }}>
+                            <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, color: "#202124" }}>
+                                Enter into Lobby
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: "#5f6368", mb: 3 }}>
+                                Provide your name to enter the meeting
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                id="outlined-basic"
+                                label="Your Name"
+                                placeholder="Enter your name"
+                                value={username}
+                                onChange={e => setUsername(e.target.value)}
+                                variant="outlined"
+                                sx={{ mb: 2.5 }}
+                            />
+                            <Button
+                                variant="contained"
+                                fullWidth
+                                size="large"
+                                onClick={connect}
+                                disabled={!username.trim()}
+                                sx={{
+                                    py: 1.2,
+                                    borderRadius: 2,
+                                    fontWeight: 600,
+                                    textTransform: "none",
+                                    bgcolor: "#1976d2",
+                                    "&:hover": { bgcolor: "#1565c0" },
+                                    mb: 2.5
+                                }}
+                            >
+                                Connect
+                            </Button>
+                            <Box sx={{
+                                width: "100%",
+                                aspectRatio: "16 / 9",
+                                bgcolor: "#202124",
+                                borderRadius: 2,
+                                overflow: "hidden",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center"
+                            }}>
+                                <video
+                                    ref={localVideoref}
+                                    autoPlay
+                                    muted
+                                    playsInline
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
+                                />
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Box> :
 
 
                 <div className={styles.meetVideoContainer}>
@@ -523,11 +619,52 @@ export default function VideoMeetComponent() {
                     </div>
 
 
-                    <video className={styles.meetUserVideo} ref={localVideoref} autoPlay muted></video>
+                    <div style={{ position: "relative", display: "inline-block" }}>
+                        <video
+                            className={styles.meetUserVideo}
+                            ref={localVideoref}
+                            autoPlay
+                            muted
+                            style={{
+                                display: (video === true) ? "block" : "none"
+                            }}
+                        />
+                        {video !== true && (
+                            <div className={styles.meetUserVideo} style={{
+                                backgroundColor: "#202124",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "white",
+                                width: "160px"
+                            }}>
+                                <VideocamOffIcon sx={{ fontSize: 28, color: "#888" }} />
+                                <span style={{ fontSize: "0.75rem", marginTop: 4 }}>Camera off</span>
+                            </div>
+                        )}
+                        {username && (
+                            <div style={{
+                                position: "absolute",
+                                bottom: "calc(10vh + 8px)",
+                                left: 18,
+                                backgroundColor: "rgba(0, 0, 0, 0.65)",
+                                color: "white",
+                                padding: "2px 8px",
+                                borderRadius: "4px",
+                                fontSize: "0.8rem",
+                                fontWeight: 500,
+                                zIndex: 10,
+                                pointerEvents: "none"
+                            }}>
+                                {username} (You)
+                            </div>
+                        )}
+                    </div>
 
                     <div className={styles.conferenceView}>
                         {videos.map((video) => (
-                            <div key={video.socketId}>
+                            <div key={video.socketId} style={{ position: "relative", display: "inline-block" }}>
                                 <video
 
                                     data-socket={video.socketId}
@@ -537,8 +674,25 @@ export default function VideoMeetComponent() {
                                         }
                                     }}
                                     autoPlay
+                                    playsInline
                                 >
                                 </video>
+                                {video.userName && (
+                                    <div style={{
+                                        position: "absolute",
+                                        bottom: 8,
+                                        left: 8,
+                                        backgroundColor: "rgba(0, 0, 0, 0.65)",
+                                        color: "white",
+                                        padding: "3px 8px",
+                                        borderRadius: "4px",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 500,
+                                        pointerEvents: "none"
+                                    }}>
+                                        {video.userName}
+                                    </div>
+                                )}
                             </div>
 
                         ))}

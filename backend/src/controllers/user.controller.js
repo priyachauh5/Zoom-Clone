@@ -104,4 +104,23 @@ const addToActivity = async (req, res) => {
     }
 }
 
-export { login, register, getUserHistory, addToActivity }
+const checkMeetingCode = async (req, res) => {
+    const meetingCode = req.params.code || req.query.code || req.query.meetingCode;
+    if (!meetingCode || !meetingCode.trim()) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Please provide a meeting code" });
+    }
+    try {
+        const cleanCode = meetingCode.trim();
+        const meeting = await Meeting.findOne({
+            meetingCode: { $regex: new RegExp(`^${cleanCode}$`, "i") }
+        });
+        if (!meeting) {
+            return res.status(httpStatus.NOT_FOUND).json({ message: "Meeting not found. Please check your meeting code." });
+        }
+        return res.status(httpStatus.OK).json({ exists: true, meetingCode: meeting.meetingCode });
+    } catch (e) {
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Something went wrong: ${e.message}` });
+    }
+}
+
+export { login, register, getUserHistory, addToActivity, checkMeetingCode }

@@ -2,6 +2,9 @@
     position: relative;
     height: 100vh;
     background: rgb(1, 4, 48);
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .meetUserVideo {
@@ -9,53 +12,116 @@
     bottom: 10vh;
     height: 20vh;
     width: auto;
-    left: 0;
-    border-radius: 20px;
+    left: 10px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 5;
 }
 
 .buttonContainers {
     position: absolute;
-    width: 100vw;
-    bottom: 0;
+    width: 100%;
+    left: 0;
+    right: 0;
+    bottom: 10px;
     text-align: center;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .buttonContainers svg {
-    font-size: 3rem;
+    font-size: 2.5rem;
 }
 
 .conferenceView { 
-
     display: flex;
-    
+    flex-wrap: wrap;
     padding: 10px;
     gap: 10px;
+    overflow-y: auto;
+    max-height: calc(100vh - 100px);
 }
 
-.conferenceView  video {
+.conferenceView video {
     width: 40vw;
-    height: 20vh;
-    min-width: 30vw;
+    height: 28vh;
+    min-width: 280px;
     border-radius: 10px;
+    object-fit: cover;
+    background: #000;
 }
 
 .chatRoom {
     position: absolute;
-    height: 90vh;
-    right: 0;
+    height: 85vh;
+    right: 10px;
+    top: 10px;
     background: white;
-    border-radius: 10px;
-    width: 30vw;
-    padding-inline: 20px;
+    border-radius: 12px;
+    width: 320px;
+    max-width: 90vw;
+    padding: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    z-index: 20;
+    box-sizing: border-box;
 }
 
 .chatContainer {
     position: relative;
     height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
+.chattingDisplay {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 70px;
+}
 
 .chattingArea {
     position: absolute;
     bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 8px;
+    background: white;
+    padding-top: 8px;
+}
+
+@media (max-width: 768px) {
+    .buttonContainers svg {
+        font-size: 1.8rem;
+    }
+
+    .buttonContainers {
+        gap: 4px;
+        bottom: 6px;
+    }
+
+    .conferenceView video {
+        width: 100%;
+        max-width: 95vw;
+        height: auto;
+        max-height: 35vh;
+        min-width: unset;
+    }
+
+    .meetUserVideo {
+        height: 14vh;
+        max-width: 38vw;
+        bottom: 8vh;
+    }
+
+    .chatRoom {
+        width: calc(100% - 20px);
+        right: 10px;
+        left: 10px;
+        height: 75vh;
+    }
 }
