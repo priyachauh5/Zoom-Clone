@@ -33,7 +33,7 @@ import { AuthContext } from '../contexts/AuthContext';
 
 function HomeComponent() {
     const navigate = useNavigate();
-    const { addToUserHistory } = useContext(AuthContext);
+    const { addToUserHistory, handleLogout } = useContext(AuthContext);
 
     const [joinMeetingCode, setJoinMeetingCode] = useState("");
     const [joinError, setJoinError] = useState("");
@@ -107,8 +107,8 @@ function HomeComponent() {
     const handleShareMeeting = async (codeToShare) => {
         const meetingUrl = `${window.location.origin}/${codeToShare}`;
         const shareData = {
-            title: "Apna Video Call",
-            text: `Join my meeting on Apna Video Call:\nMeeting Code: ${codeToShare}\nLink: ${meetingUrl}`,
+            title: "ConnectX",
+            text: `Join my meeting on ConnectX:\nMeeting Code: ${codeToShare}\nLink: ${meetingUrl}`,
             url: meetingUrl
         };
 
@@ -157,11 +157,6 @@ function HomeComponent() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        navigate("/auth");
-    };
-
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "#f8f9fa", display: "flex", flexDirection: "column" }}>
             {/* Top Navigation Bar */}
@@ -173,14 +168,16 @@ function HomeComponent() {
                     px: { xs: 2, md: 4 },
                     py: 1.5,
                     bgcolor: "#ffffff",
-                    borderBottom: "1px solid #e0e0e0"
+                    borderBottom: "1px solid #e0e0e0",
+                    flexWrap: "wrap",
+                    gap: 1
                 }}
             >
                 {/* Brand */}
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                     <VideocamIcon sx={{ color: "#1976d2", fontSize: 32 }} />
                     <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a1a1a" }}>
-                        Apna Video Call
+                        ConnectX
                     </Typography>
                 </Box>
 
