@@ -1,6 +1,6 @@
 <div align="center">
 
-# Zoom-Clone
+# ConnectX
 
 <p align="center">• Built a real-time video conferencing platform using WebRTC, enabling low-latency (<300ms) peer-to-peer audio/video communication.
  
